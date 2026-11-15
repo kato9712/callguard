@@ -76,8 +76,20 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - uses: docker/build-push-action@v6
-        with:
-          context: tower
-          push: true
-          tags: ghcr.io/${{ github.repository_owner }}/callguard:latest
+      - name: Build image
+        run: docker build -t ghcr.io/${{ github.repository_owner }}/callguard:latest tower
+      - name: Smoke test the image (starts, loads speech models, Asterisk answers, phone can register)
+        run: |
+          docker run -d --name cg --network host -e PHONE_PASS=testpass -e API_TOKEN=t -e CC_USER=17775551234 -e CC_PASS=x \
+            ghcr.io/${{ github.repository_owner }}/callguard:latest
+          for i in $(seq 1 60); do docker logs cg 2>&1 | grep -q "FastAGI listening" && break; sleep 3; done
+          docker logs cg 2>&1 | grep -E "callguard|speech" | tail -n 8
+          docker logs cg 2>&1 | grep -q "TTS=piper STT=whisper"
+          curl -fsS http://127.0.0.1:8099/health
+          sleep 5
+          docker exec cg asterisk -rx "pjsip show registrations" | grep callcentric
+          docker exec cg asterisk -rx "dialplan show screen" | grep -q AGI
+          docker cp tower/tests/sip_register_check.py cg:/tmp/ && docker exec cg python3 /tmp/sip_register_check.py testpass
+          docker exec cg sh -c 'ls -ld /data/recordings && test -r /data/sounds/greet.wav'
+          docker rm -f cg
+      - run: docker push ghcr.io/${{ github.repository_owner }}/callguard:latest

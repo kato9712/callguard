@@ -11,7 +11,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 RUN pip3 install --no-cache-dir --break-system-packages --ignore-installed \
-        faster-whisper==1.2.1 piper-tts==1.8.0 pocketsphinx==5.1.1
+        faster-whisper==1.2.1 piper-tts==1.8.0
 
 COPY asterisk /opt/callguard/asterisk
 COPY app /opt/callguard/app
