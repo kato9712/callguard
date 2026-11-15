@@ -10,7 +10,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         espeak-ng sox ffmpeg python3 python3-pip ca-certificates tzdata \
     && rm -rf /var/lib/apt/lists/*
 
-RUN pip3 install --no-cache-dir --break-system-packages \
+RUN pip3 install --no-cache-dir --break-system-packages --ignore-installed \
         faster-whisper==1.2.1 piper-tts==1.8.0 pocketsphinx==5.1.1
 
 COPY asterisk /opt/callguard/asterisk

@@ -20,7 +20,7 @@ jobs:
           sudo DEBIAN_FRONTEND=noninteractive apt-get install -y asterisk asterisk-core-sounds-en-gsm espeak-ng sox ffmpeg
           sudo systemctl stop asterisk || true
           sudo systemctl disable asterisk || true
-          sudo pip3 install --break-system-packages faster-whisper==1.2.1 piper-tts==1.8.0 pocketsphinx==5.1.1
+          sudo pip3 install --break-system-packages --ignore-installed faster-whisper==1.2.1 piper-tts==1.8.0 pocketsphinx==5.1.1
 
       - name: Classifier tests
         run: python3 tower/tests/test_classify.py && python3 tower/tests/test_llm.py
