@@ -377,7 +377,7 @@ def real_caller_connect(prev, mark):
     wait_for(lambda: tg.find("sendMessage", mark, "Connected"), 10, "result note")
     if WHISPER:
         assert "tire" in c["transcript"].lower(), c["transcript"]
-        assert "Discount Tire" in alert["text"] or "discount tire" in alert["text"].lower(), alert["text"]
+        assert "tire" in alert["text"].lower() and "truck" in alert["text"].lower(), alert["text"]
     return f"transcript={c['transcript']!r} verdict={c['verdict']}"
 
 
