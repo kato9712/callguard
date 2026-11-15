@@ -1,0 +1,83 @@
+name: build
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  tower-tests:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Asterisk, audio tools, speech models
+        run: |
+          sudo apt-get update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y asterisk asterisk-core-sounds-en-gsm espeak-ng sox ffmpeg
+          sudo systemctl stop asterisk || true
+          sudo systemctl disable asterisk || true
+          sudo pip3 install --break-system-packages faster-whisper==1.2.1 piper-tts==1.8.0 pocketsphinx==5.1.1
+
+      - name: Classifier tests
+        run: python3 tower/tests/test_classify.py && python3 tower/tests/test_llm.py
+
+      - name: SIP config check
+        run: sudo sh tower/tests/sip_check.sh
+
+      - name: End-to-end calls (Whisper + Piper voice)
+        run: sudo -E env STT_BACKEND=whisper EXPECT_WHISPER=1 python3 tower/tests/e2e.py
+
+      - name: Logs
+        if: always()
+        run: |
+          sudo tail -n 80 /tmp/cg-e2e/app.log || true
+          sudo sed 's/\x1b\[[0-9;]*m//g' /tmp/cg-e2e/asterisk.log | grep -E "WARNING|ERROR" | tail -n 40 || true
+
+  android:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.10.2"
+      - name: Unit tests + build APK
+        run: gradle -p android --no-daemon testReleaseUnitTest assembleRelease
+      - run: cp android/app/build/outputs/apk/release/app-release.apk CallGuard.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: CallGuard-apk
+          path: CallGuard.apk
+      - name: Publish to the "latest" release
+        if: github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest
+          name: CallGuard (latest build)
+          body: "Build ${{ github.run_number }} from ${{ github.sha }}"
+          files: CallGuard.apk
+          make_latest: true
+
+  docker:
+    needs: tower-tests
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: tower
+          push: true
+          tags: ghcr.io/${{ github.repository_owner }}/callguard:latest

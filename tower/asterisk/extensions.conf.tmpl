@@ -1,0 +1,32 @@
+[general]
+static=yes
+writeprotect=yes
+
+; Calls forwarded from your cell arrive here from Callcentric.
+[from-callcentric]
+exten => s,1,Goto(screen,s,1)
+exten => _[0-9a-zA-Z+].,1,Goto(screen,s,1)
+
+[screen]
+exten => s,1,NoOp(CallGuard: call from ${CALLERID(num)})
+ same => n,Set(TIMEOUT(absolute)=900)
+ same => n,AGI(agi://@@AGI_HOST@@:@@AGI_PORT@@)
+ same => n,Hangup()
+
+; Runs on your phone's leg the moment you answer a Connect.
+[cg-answered]
+exten => s,1,System(touch ${CGMARK})
+ same => n,Return()
+
+; What Linphone can dial. The free number can't call out, so only a test line.
+[from-phone]
+exten => 600,1,Answer()
+ same => n,Wait(1)
+ same => n,Playback(demo-echotest)
+ same => n,Echo()
+ same => n,Hangup()
+exten => _X.,1,Answer()
+ same => n,Playback(ss-noservice)
+ same => n,Hangup()
+
+#tryinclude extensions_test.conf
