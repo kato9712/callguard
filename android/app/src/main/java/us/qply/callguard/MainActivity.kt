@@ -109,6 +109,10 @@ class MainActivity : Activity() {
             "Verizon" to { dial("*71${Rules.normalize(fwd.text.toString()).also { setPref("fwd", it) }}") },
         )
         row(
+            "US Mobile Dark Star" to { dial("*67*${Rules.normalize(fwd.text.toString()).also { setPref("fwd", it) }}#") },
+            "Turn off (Dark Star)" to { dial("##67#") },
+        )
+        row(
             "Turn off (T-Mobile/AT&T)" to { dial("##004#") },
             "Turn off (Verizon)" to { dial("*73") },
         )

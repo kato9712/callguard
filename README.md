@@ -67,7 +67,7 @@ Install `CallGuard.apk` from the repo's **latest** release (Android 10+). In the
 
 1. **Set as call screener**, **Allow** contacts (and the call log if you want numbers you dialed to ring).
 2. Tower address `http://<Tower Tailscale IP>:8099`, the `API_TOKEN`, your cell number → **Save & sync**.
-3. Under *Forward to the screener*, enter the Callcentric number and tap your carrier. Your phone app opens with the code filled in (`**004*1NUMBER#` on T-Mobile/AT&T, `*71NUMBER` on Verizon). Press call.
+3. Under *Forward to the screener*, enter the Callcentric number and tap your carrier. Your phone app opens with the code filled in (`*67*NUMBER#` on US Mobile Dark Star, `**004*1NUMBER#` on T-Mobile/AT&T, `*71NUMBER` on Verizon). Press call.
 
 Test: call your cell from a number that isn't in your contacts. It shouldn't ring, and the caller should hear the screener.
 
