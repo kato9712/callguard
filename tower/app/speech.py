@@ -162,23 +162,31 @@ def _whisper_model():
     return _whisper
 
 
+def _pcm16k(path):
+    """Caller audio as 16 kHz mono 16-bit PCM bytes (what both speech engines want)."""
+    with tempfile.NamedTemporaryFile(suffix=".raw", delete=False) as tmp:
+        raw = tmp.name
+    try:
+        subprocess.run(["sox", path, "-r", "16000", "-c", "1", "-b", "16", "-e", "signed-integer",
+                        "-t", "raw", raw], check=True, capture_output=True)
+        return open(raw, "rb").read()
+    finally:
+        os.unlink(raw)
+
+
 def _transcribe_whisper(path):
+    import numpy as np
     model = _whisper_model()
-    segments, _ = model.transcribe(path, language="en", beam_size=1, vad_filter=False,
+    # Hand Whisper the samples directly instead of a file path, so it doesn't depend on PyAV's decoder.
+    audio = np.frombuffer(_pcm16k(path), dtype=np.int16).astype(np.float32) / 32768.0
+    segments, _ = model.transcribe(audio, language="en", beam_size=1, vad_filter=False,
                                    condition_on_previous_text=False)
     return " ".join(s.text.strip() for s in segments).strip()
 
 
 def _transcribe_sphinx(path):
     from pocketsphinx import Decoder
-    with tempfile.NamedTemporaryFile(suffix=".raw", delete=False) as tmp:
-        raw = tmp.name
-    try:
-        subprocess.run(["sox", path, "-r", "16000", "-c", "1", "-b", "16", "-e", "signed-integer",
-                        "-t", "raw", raw], check=True, capture_output=True)
-        data = open(raw, "rb").read()
-    finally:
-        os.unlink(raw)
+    data = _pcm16k(path)
     dec = Decoder(loglevel="FATAL")
     dec.start_utt()
     dec.process_raw(data, full_utt=True)
